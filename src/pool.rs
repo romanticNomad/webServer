@@ -19,9 +19,11 @@ struct Worker {
 impl Worker {
     pub fn new(id: usize, reciever: Arc<Mutex<Receiver<Job>>>) -> Worker {
         let thread = thread::spawn(move || {
-            let job = reciever.lock().unwrap().recv().unwrap();
-            println!("{id} online");
-            job()
+            loop {
+                let job = reciever.lock().unwrap().recv().unwrap();
+                println!("{id} online");
+                job();
+            }
         });
         Worker { id, thread }
     }
