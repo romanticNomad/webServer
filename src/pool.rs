@@ -3,7 +3,7 @@ use std::{
     thread
 };
 
-// Defining a closure that will be shared through the channel and initialized by execute.
+// Defining a closure trait object, that will be shared through the channel and initialized by execute.
 type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct ThreadPool{
