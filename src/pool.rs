@@ -8,7 +8,7 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 pub struct ThreadPool{
     relay: Vec<Worker>,
-    sender: mpsc::Sender<Job>
+    sender: Option<mpsc::Sender<Job>>
 }
 
 struct Worker {
@@ -41,7 +41,7 @@ impl ThreadPool {
             relay.push(Worker::new(id, Arc::clone(&reciever)));
         }
 
-        ThreadPool { relay, sender } 
+        ThreadPool { relay, sender: Some(sender) } 
     }
 
     pub fn execute<F>(&self, f: F)
@@ -49,15 +49,20 @@ impl ThreadPool {
         F: Send + FnOnce() + 'static,
         {
             let job = Box::new(f);
-            self.sender.send(job).unwrap();
+            self.sender
+            .as_ref()
+            .unwrap()
+            .send(job).unwrap();
         }
 }
 
 impl Drop for ThreadPool {
     fn drop(&mut self) {
+        drop(self.sender.take()); // we need to drop the sender to stop the infinite loop in the thread closure.
+
         for worker in self.relay.drain(..) { // using self.drain() to deal with the ownership of threads issue.
             println!("shutting down {}", worker.id);
-            worker.thread.join().unwrap();
+            worker.thread.join().unwrap(); // calling join alone won't shut down threads, since they loop forever.
         }
     }
 }
