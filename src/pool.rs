@@ -52,3 +52,12 @@ impl ThreadPool {
             self.sender.send(job).unwrap();
         }
 }
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        for worker in self.relay.drain(..) { // using self.drain() to deal with the ownership of threads issue.
+            println!("shutting down {}", worker.id);
+            worker.thread.join().unwrap();
+        }
+    }
+}
