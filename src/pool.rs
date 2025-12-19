@@ -20,9 +20,17 @@ impl Worker {
     pub fn new(id: usize, reciever: Arc<Mutex<Receiver<Job>>>) -> Worker {
         let thread = thread::spawn(move || {
             loop {
-                let job = reciever.lock().unwrap().recv().unwrap();
-                println!("{id} online");
-                job();
+                let job = reciever.lock().unwrap().recv();
+                match job {
+                    Ok(job) => {
+                        println!("Worker {id} activated");
+                        job();
+                    }
+                    Err(_) => {
+                        println!("Worker {id} disconnected");
+                        break;
+                    }
+                }
             }
         });
         Worker { id, thread }
@@ -61,7 +69,7 @@ impl Drop for ThreadPool {
         drop(self.sender.take()); // we need to drop the sender to stop the infinite loop in the thread closure.
 
         for worker in self.relay.drain(..) { // using self.drain() to deal with the ownership of threads issue.
-            println!("shutting down {}", worker.id);
+            println!("Shutting down worker {}", worker.id);
             worker.thread.join().unwrap(); // calling join alone won't shut down threads, since they loop forever.
         }
     }

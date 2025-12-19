@@ -11,12 +11,13 @@ fn main() {
     // println!("online");
     let pool = ThreadPool::new(4);
 
-    for stream in listner.incoming() {
+    for stream in listner.incoming().take(5) {
         // println!("incoming");
         let stream = stream.unwrap();
         
         pool.execute(|| {
             connection::io(stream);
         });
-    };
+    }
+    println!("Shutting down!");
 }
